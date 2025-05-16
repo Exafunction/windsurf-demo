@@ -4,32 +4,56 @@ import { FOOD_SIZE, FOOD_SCORE, COLLISION_THRESHOLD, FOOD_COUNT, AI_COUNT, START
 import { respawnAI } from './entities.js';
 
 export function handleFoodCollisions() {
+    const currentTime = Date.now();
+    
     // Player cells eating food
     for (const playerCell of gameState.playerCells) {
+        let hasEaten = false;
+        
         gameState.food = gameState.food.filter(food => {
             const distance = getDistance(playerCell, food);
             const playerSize = getSize(playerCell.score);
 
             if (distance < playerSize + FOOD_SIZE) {
                 playerCell.score += FOOD_SCORE;
+                hasEaten = true;
                 return false;
             }
             return true;
         });
+        
+        // Update the lastFoodTime when player eats food
+        if (hasEaten) {
+            playerCell.lastFoodTime = currentTime;
+        } else if (!playerCell.lastFoodTime) {
+            // Initialize lastFoodTime if it doesn't exist
+            playerCell.lastFoodTime = currentTime;
+        }
     }
 
     // AI eating food
     for (const ai of gameState.aiPlayers) {
+        let hasEaten = false;
+        
         gameState.food = gameState.food.filter(food => {
             const distance = getDistance(ai, food);
             const aiSize = getSize(ai.score);
 
             if (distance < aiSize + FOOD_SIZE) {
                 ai.score += FOOD_SCORE;
+                hasEaten = true;
                 return false;
             }
             return true;
         });
+        
+        // Update the lastFoodTime when AI eats food
+        if (hasEaten) {
+            ai.lastFoodTime = currentTime;
+        } else if (!ai.lastFoodTime) {
+            // Initialize lastFoodTime if it doesn't exist
+            ai.lastFoodTime = currentTime;
+        }
     }
 }
 

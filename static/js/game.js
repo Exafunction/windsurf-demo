@@ -3,6 +3,8 @@ import { initRenderer, resizeCanvas, drawGame, drawMinimap, updateLeaderboard } 
 import { updatePlayer, updateAI, initEntities, handlePlayerSplit } from './entities.js';
 import { handleFoodCollisions, handlePlayerAICollisions, handleAIAICollisions, respawnEntities } from './collisions.js';
 import { initUI } from './ui.js';
+import { applyDecay } from './utils.js';
+import { DECAY_INTERVAL } from './config.js';
 
 function setupInputHandlers() {
     const canvas = document.getElementById('gameCanvas');
@@ -48,7 +50,32 @@ function verifyGameState() {
     }
 }
 
+// Track time for decay calculations
+let lastFrameTime = Date.now();
+let lastDecayTime = Date.now();
+
 function gameLoop() {
+    const currentTime = Date.now();
+    const deltaTime = currentTime - lastFrameTime;
+    lastFrameTime = currentTime;
+    
+    // Apply decay at regular intervals to avoid performance issues
+    if (currentTime - lastDecayTime >= DECAY_INTERVAL) {
+        // Calculate time since last decay calculation
+        const decayDeltaTime = currentTime - lastDecayTime;
+        lastDecayTime = currentTime;
+        
+        // Apply decay to player cells
+        gameState.playerCells.forEach(cell => {
+            applyDecay(cell, decayDeltaTime);
+        });
+        
+        // Apply decay to AI players
+        gameState.aiPlayers.forEach(ai => {
+            applyDecay(ai, decayDeltaTime);
+        });
+    }
+    
     updatePlayer();
     updateAI();
     checkCollisions();

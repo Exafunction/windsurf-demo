@@ -1,4 +1,5 @@
-import { getSize, getDistance, calculateCenterOfMass } from '../utils.js';
+import { getSize, getDistance, calculateCenterOfMass, getRandomPosition, findSafeSpawnLocation, applyDecay } from '../utils.js';
+import { WORLD_SIZE, DECAY_ENABLED, DECAY_RATE, DECAY_THRESHOLD } from '../config.js';
 
 describe('getSize', () => {
   test('returns correct size for score 0', () => {
@@ -52,8 +53,8 @@ describe('calculateCenterOfMass', () => {
       { x: 10, y: 10, score: 300 }
     ];
     const center = calculateCenterOfMass(cells);
-    expect(center.x).toBeCloseTo(5);
-    expect(center.y).toBeCloseTo(5);
+    expect(center.x).toBeCloseTo(7.5);
+    expect(center.y).toBeCloseTo(7.5);
   });
 
   test('returns {x: 0, y: 0} for empty cells array', () => {
@@ -66,5 +67,36 @@ describe('calculateCenterOfMass', () => {
       { x: 30, y: 40, score: 0 }
     ];
     expect(calculateCenterOfMass(cells)).toEqual({ x: 0, y: 0 });
+  });
+});
+
+describe('applyDecay', () => {
+  test('should not decay below threshold', () => {
+    const entity = { score: DECAY_THRESHOLD };
+    applyDecay(entity, 1000);
+    expect(entity.score).toBe(DECAY_THRESHOLD);
+  });
+
+  test('should decay proportionally to time passed', () => {
+    const entity = { score: 100 };
+    // Update to use power function instead of sqrt
+    const expectedDecayFactor = Math.pow(entity.score, DECAY_SIZE_FACTOR) / 10;
+    const expectedDecayAmount = DECAY_RATE * expectedDecayFactor * 1; // 1 second
+    
+    applyDecay(entity, 1000); // 1 second
+    
+    expect(entity.score).toBeCloseTo(100 - expectedDecayAmount, 5);
+  });
+
+  test('should decay more for higher scores', () => {
+    const smallEntity = { score: 100 };
+    const largeEntity = { score: 400 };
+    
+    // Apply same time decay to both
+    applyDecay(smallEntity, 1000);
+    applyDecay(largeEntity, 1000);
+    
+    // Verify larger entity decayed more
+    expect(100 - smallEntity.score).toBeLessThan(400 - largeEntity.score);
   });
 });

@@ -7,6 +7,18 @@ export const FOOD_COUNT = 100;
 export const AI_COUNT = 10;
 export const COLLISION_THRESHOLD = 1.1; // 10% size difference needed for consumption
 
+// Decay mechanics
+export const DECAY_ENABLED = true;  // Can be toggled to enable/disable decay
+export const DECAY_RATE = 0.05;     // Base score lost per second
+export const DECAY_THRESHOLD = 50;  // Minimum score before decay stops
+export const DECAY_INTERVAL = 1000; // Decay calculation interval in milliseconds
+
+// Advanced decay mechanics
+export const DECAY_MOVEMENT_MULTIPLIER = 1.5;  // Decay multiplier when moving (higher = more decay when moving)
+export const DECAY_SIZE_FACTOR = 0.2;         // How much size affects decay (higher = larger cells decay faster)
+export const DECAY_STARVATION_THRESHOLD = 10; // Seconds without food before starvation decay kicks in
+export const DECAY_STARVATION_MULTIPLIER = 2; // Multiplier for decay when starving
+
 // Split mechanics
 export const MIN_SPLIT_SCORE = 40;  // Minimum score needed to split
 export const SPLIT_VELOCITY = 12;   // Initial velocity of split cells
