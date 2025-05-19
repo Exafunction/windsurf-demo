@@ -10,6 +10,52 @@ function saveDarkMode(isDarkMode) {
     localStorage.setItem('darkMode', isDarkMode);
 }
 
+function initMinimapDrag() {
+    const minimap = document.getElementById('minimap');
+    let isDragging = false;
+    let currentX;
+    let currentY;
+    let initialX;
+    let initialY;
+
+    minimap.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        initialX = e.clientX - currentX;
+        initialY = e.clientY - currentY;
+        minimap.style.cursor = 'grabbing';
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+
+        e.preventDefault();
+        currentX = e.clientX - initialX;
+        currentY = e.clientY - initialY;
+
+        // Keep minimap within viewport bounds
+        const minimapRect = minimap.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+
+        currentX = Math.max(0, Math.min(currentX, viewportWidth - minimapRect.width));
+        currentY = Math.max(0, Math.min(currentY, viewportHeight - minimapRect.height));
+
+        minimap.style.left = `${currentX}px`;
+        minimap.style.bottom = `${viewportHeight - currentY - minimapRect.height}px`;
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        minimap.style.cursor = 'grab';
+    });
+
+    // Initialize position and cursor
+    const minimapRect = minimap.getBoundingClientRect();
+    currentX = minimapRect.left;
+    currentY = minimapRect.top;
+    minimap.style.cursor = 'grab';
+}
+
 export function initUI() {
     const settingsIcon = document.getElementById('settings-icon');
     const settingsPanel = document.getElementById('settings-panel');
@@ -17,6 +63,9 @@ export function initUI() {
 
     // Load dark mode preference
     loadDarkMode();
+
+    // Initialize minimap dragging
+    initMinimapDrag();
 
     // Toggle settings panel
     settingsIcon.addEventListener('click', (e) => {

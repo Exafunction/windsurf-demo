@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <title>Windsurf vs All</title>
     <style>
@@ -25,16 +25,36 @@
         }
         #score {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            font-family: Arial, sans-serif;
-            font-size: 20px;
-            color: #333;
-            text-shadow: 0 0 3px rgba(255, 255, 255, 0.5);
+            top: 20px;
+            left: 20px;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
+            padding: 12px 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        #score .label {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.7);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 4px;
+        }
+        #score .value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        #score:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
         }
         :root[data-theme="dark"] #score {
-            color: #fff;
-            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
         }
         #leaderboard {
             position: absolute;
@@ -206,7 +226,10 @@
 </head>
 <body>
     <canvas id="gameCanvas"></canvas>
-    <div id="score">Score: 0</div>
+    <div id="score">
+        <div class="label">Score</div>
+        <div class="value">0</div>
+    </div>
     <div id="leaderboard">
         <h3>Leaderboard</h3>
         <div id="leaderboard-content"></div>
@@ -236,9 +259,9 @@
         <div class="control-group">
             <h3>Display</h3>
             <div class="control-item">
-                <span>Dark Mode</span>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="dark-mode-toggle" onclick="toggleDarkMode()">
+                <label class="toggle-switch" for="dark-mode-toggle">
+                    <span>Dark Mode</span>
+                    <input type="checkbox" id="dark-mode-toggle" onKeyPress="handleDarkModeKeyPress(event)">
                     <span class="toggle-slider"></span>
                 </label>
             </div>
@@ -252,9 +275,19 @@
         </div>
     </div>
     <script>
-        function toggleDarkMode() {
-            document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') === 'dark' ? '' : 'dark');
+    function handleDarkModeKeyPress(event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            const checkbox = document.getElementById('dark-mode-toggle');
+            checkbox.checked = !checkbox.checked;
+            document.documentElement.setAttribute('data-theme', checkbox.checked ? 'dark' : '');
         }
+    }
+    
+    function toggleDarkMode() {
+        document.documentElement.setAttribute('data-theme', document.documentElement.getAttribute('data-theme') ? '' : 'dark');
+    }
+    toggleDarkMode();
     </script>
     <script type="module" src="{{ url_for('static', filename='js/game.js') }}"></script>
 </body>

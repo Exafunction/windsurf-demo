@@ -106,7 +106,11 @@ export function drawGame() {
     });
 
     // Update score display
-    scoreElement.textContent = `Score: ${Math.floor(gameState.playerCells.reduce((sum, cell) => sum + cell.score, 0))}`;
+    const totalScore = Math.floor(gameState.playerCells.reduce((sum, cell) => sum + cell.score, 0));
+    const scoreValueElement = scoreElement.querySelector('.value');
+    if (scoreValueElement) {
+        scoreValueElement.textContent = totalScore.toLocaleString();
+    }
 }
 
 export function drawMinimap() {
