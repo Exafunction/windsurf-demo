@@ -11,7 +11,9 @@ import {
     MERGE_COOLDOWN,
     MERGE_DISTANCE,
     MERGE_FORCE,
-    MERGE_START_FORCE
+    MERGE_START_FORCE,
+    BASE_DECAY_RATE,
+    DECAY_SCALE_FACTOR
 } from './config.js';
 
 const AI_NAMES = [
@@ -164,7 +166,13 @@ function updateCellMerging() {
     }
 }
 
+let lastUpdateTime = Date.now();
+
 export function updatePlayer() {
+    const currentTime = Date.now();
+    const deltaTime = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
+    lastUpdateTime = currentTime;
+
     const dx = mouse.x - window.innerWidth / 2;
     const dy = mouse.y - window.innerHeight / 2;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -187,6 +195,9 @@ export function updatePlayer() {
             // Update position
             cell.x = Math.max(0, Math.min(WORLD_SIZE, cell.x + cell.velocityX));
             cell.y = Math.max(0, Math.min(WORLD_SIZE, cell.y + cell.velocityY));
+
+            // Apply score decay
+            applyScoreDecay(cell, deltaTime);
         });
     }
 
@@ -244,7 +255,20 @@ export function handlePlayerSplit() {
     cellsToSplit.forEach(cell => splitPlayerCell(cell));
 }
 
+function applyScoreDecay(entity, deltaTime) {
+    // Calculate decay based on size (larger entities decay faster)
+    const size = getSize(entity.score);
+    const decayRate = BASE_DECAY_RATE * (1 + size * DECAY_SCALE_FACTOR);
+    
+    // Apply decay based on time elapsed
+    const decay = decayRate * deltaTime;
+    entity.score = Math.max(MIN_SPLIT_SCORE / 2, entity.score - decay);
+}
+
 export function updateAI() {
+    const currentTime = Date.now();
+    const deltaTime = (currentTime - lastUpdateTime) / 1000; // Convert to seconds
+
     gameState.aiPlayers.forEach(ai => {
         if (Math.random() < 0.02) {
             ai.direction = Math.random() * Math.PI * 2;
@@ -256,6 +280,9 @@ export function updateAI() {
 
         ai.x = Math.max(0, Math.min(WORLD_SIZE, ai.x));
         ai.y = Math.max(0, Math.min(WORLD_SIZE, ai.y));
+
+        // Apply score decay
+        applyScoreDecay(ai, deltaTime);
     });
 }
 

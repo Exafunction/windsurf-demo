@@ -19,6 +19,10 @@ export const MERGE_COOLDOWN = 10000;  // Time in ms before cells can merge
 export const MERGE_FORCE = 0.3;       // Strength of the merging force
 export const MERGE_START_FORCE = 0.1; // Initial attraction force (before merge cooldown)
 
+// Score decay mechanics
+export const BASE_DECAY_RATE = 0.02;   // Base rate of score decay per second
+export const DECAY_SCALE_FACTOR = 2; // How much size affects decay rate
+
 export const COLORS = {
     PLAYER: '#008080',  // Teal color
     MINIMAP: {

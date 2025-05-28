@@ -1,6 +1,20 @@
 import { gameState } from './gameState.js';
 import { getSize, calculateCenterOfMass } from './utils.js';
-import { WORLD_SIZE, COLORS, FOOD_SIZE } from './config.js';
+import { WORLD_SIZE, COLORS, FOOD_SIZE, MIN_SPLIT_SCORE } from './config.js';
+
+// Helper function to convert hex color to RGB
+function hexToRgb(hex) {
+    // Remove the hash if present
+    hex = hex.replace(/^#/, '');
+    
+    // Parse the hex values
+    const bigint = parseInt(hex, 16);
+    const r = (bigint >> 16) & 255;
+    const g = (bigint >> 8) & 255;
+    const b = bigint & 255;
+    
+    return `${r}, ${g}, ${b}`;
+}
 
 let canvas, ctx, minimapCanvas, minimapCtx, scoreElement, leaderboardContent;
 
@@ -32,10 +46,19 @@ function drawCircle(x, y, value, color, isFood) {
 function drawCellWithName(x, y, score, color, name) {
     const size = getSize(score);
     
-    // Draw cell
+    // Draw cell with decay effect
     ctx.beginPath();
     ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fillStyle = color;
+    
+    // Add pulsing effect when score is decaying
+    if (score < MIN_SPLIT_SCORE) {
+        const pulseIntensity = 0.2 * Math.sin(Date.now() / 200); // Pulsing every 200ms
+        const alpha = Math.max(0.6, 1 - pulseIntensity);
+        ctx.fillStyle = color.startsWith('rgba') ? color : `rgba(${hexToRgb(color)}, ${alpha})`;
+    } else {
+        ctx.fillStyle = color;
+    }
+    
     ctx.fill();
 
     // Draw name
@@ -105,8 +128,12 @@ export function drawGame() {
         }
     });
 
-    // Update score display
-    scoreElement.textContent = `Score: ${Math.floor(gameState.playerCells.reduce((sum, cell) => sum + cell.score, 0))}`;
+    // Update score display with 1 decimal place when below split threshold
+    const totalScore = gameState.playerCells.reduce((sum, cell) => sum + cell.score, 0);
+    const formattedScore = totalScore < MIN_SPLIT_SCORE * 2 ? 
+        totalScore.toFixed(1) : 
+        Math.floor(totalScore);
+    scoreElement.textContent = `Score: ${formattedScore}`;
 }
 
 export function drawMinimap() {

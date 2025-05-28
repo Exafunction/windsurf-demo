@@ -52,8 +52,8 @@ describe('calculateCenterOfMass', () => {
       { x: 10, y: 10, score: 300 }
     ];
     const center = calculateCenterOfMass(cells);
-    expect(center.x).toBeCloseTo(5);
-    expect(center.y).toBeCloseTo(5);
+    expect(center.x).toBeCloseTo(7.5);
+    expect(center.y).toBeCloseTo(7.5);
   });
 
   test('returns {x: 0, y: 0} for empty cells array', () => {

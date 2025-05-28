@@ -40,3 +40,7 @@ instance/
 venv/
 env/
 ENV/
+.windsurf/rules/do-not-make-new-test-files.md
+.windsurf/workflows/test-new-changes.md
+.gitignore
+.windsurf/rules/minimal-rules.md
