@@ -4,6 +4,8 @@ description: Playwright browsers tester that uses MCP to test a browser writes t
 
 Start my flask application app.py
 
+if the application says that something else is on port 5000 kill it, then try again 
+
 Use Playwright's best practices and a hybrid locator strategy when generating tests for the site. Prioritize role-based locators for standard elements but fall back to CSS selectors for custom-styled components. Ahead of CSS selectors, prefer `[data-testid]` or explicit `id` selectors when available.
 
 Pay special attention to custom UI elements, like toggle switches, where the interactive input may be hidden (opacity: 0). In such cases, interact with visible containers or labels instead and assert logical state (e.g., `toBeChecked()`) rather than visibility of the hidden input.
