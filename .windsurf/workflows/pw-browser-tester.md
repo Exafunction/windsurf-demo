@@ -2,7 +2,10 @@
 description: Playwright browsers tester that uses MCP to test a browser writes tests, and then tests the output of the tests to ensure they pass. if the tests fail then examine the code and run the tests again after modifications
 ---
 
-Start my flask application app.py
+Start my flask application with 
+
+source venv/bin/activate && python --version
+then run app.py
 
 if the application says that something else is on port 5000 kill it, then try again 
 
