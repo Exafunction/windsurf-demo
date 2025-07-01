@@ -1,0 +1,558 @@
+diff --git a/static/js/collisions.js b/static/js/collisions.js
+index 70cda7e..4bc83d7 100644
+--- a/static/js/collisions.js
++++ b/static/js/collisions.js
+@@ -2,6 +2,7 @@ import { gameState } from './gameState.js';
+ import { getDistance, getSize, getRandomPosition, findSafeSpawnLocation } from './utils.js';
+ import { FOOD_SIZE, FOOD_SCORE, COLLISION_THRESHOLD, FOOD_COUNT, AI_COUNT, STARTING_SCORE, WORLD_SIZE } from './config.js';
+ import { respawnAI } from './entities.js';
++import { doTrianglesOverlap, createTriangle } from './triangleCollision.js';
+ 
+ export function handleFoodCollisions() {
+     // Player cells eating food
+@@ -11,8 +12,15 @@ export function handleFoodCollisions() {
+             const playerSize = getSize(playerCell.score);
+ 
+             if (distance < playerSize + FOOD_SIZE) {
+-                playerCell.score += FOOD_SCORE;
+-                return false;
++                // Create triangles for more precise collision detection
++                const playerTriangle = createTriangle(playerCell.x, playerCell.y, playerSize, playerCell.rotation || 0);
++                const foodTriangle = createTriangle(food.x, food.y, FOOD_SIZE, food.rotation || 0);
++                
++                // Check for triangle overlap
++                if (doTrianglesOverlap(playerTriangle, foodTriangle)) {
++                    playerCell.score += FOOD_SCORE;
++                    return false;
++                }
+             }
+             return true;
+         });
+@@ -25,8 +33,15 @@ export function handleFoodCollisions() {
+             const aiSize = getSize(ai.score);
+ 
+             if (distance < aiSize + FOOD_SIZE) {
+-                ai.score += FOOD_SCORE;
+-                return false;
++                // Create triangles for more precise collision detection
++                const aiTriangle = createTriangle(ai.x, ai.y, aiSize, ai.rotation || 0);
++                const foodTriangle = createTriangle(food.x, food.y, FOOD_SIZE, food.rotation || 0);
++                
++                // Check for triangle overlap
++                if (doTrianglesOverlap(aiTriangle, foodTriangle)) {
++                    ai.score += FOOD_SCORE;
++                    return false;
++                }
+             }
+             return true;
+         });
+@@ -45,22 +60,31 @@ export function handlePlayerAICollisions() {
+             if (aiIndicesToRemove.has(aiIndex)) return;
+             if (playerCellsToRemove.has(playerCellIndex)) return;
+ 
++            // First do a quick circle-based distance check for performance
+             const distance = getDistance(playerCell, ai);
+             const playerSize = getSize(playerCell.score);
+             const aiSize = getSize(ai.score);
+             const minDistance = playerSize + aiSize;
+ 
+-            if (distance < minDistance) {
+-                // Player cell is bigger
+-                if (playerSize > aiSize * COLLISION_THRESHOLD) {
+-                    const currentGain = scoreGains.get(playerCellIndex) || 0;
+-                    scoreGains.set(playerCellIndex, currentGain + ai.score + 100);
+-                    aiIndicesToRemove.add(aiIndex);
+-                }
+-                // AI is bigger
+-                else if (aiSize > playerSize * COLLISION_THRESHOLD) {
+-                    ai.score += playerCell.score + 100;
+-                    playerCellsToRemove.add(playerCellIndex);
++            // Only perform triangle collision if circles are close enough
++            if (distance < minDistance * 1.5) {
++                // Create triangles for more precise collision detection
++                const playerTriangle = createTriangle(playerCell.x, playerCell.y, playerSize, playerCell.rotation || 0);
++                const aiTriangle = createTriangle(ai.x, ai.y, aiSize, ai.rotation || 0);
++                
++                // Check for triangle overlap
++                if (doTrianglesOverlap(playerTriangle, aiTriangle)) {
++                    // Player cell is bigger
++                    if (playerSize > aiSize * COLLISION_THRESHOLD) {
++                        const currentGain = scoreGains.get(playerCellIndex) || 0;
++                        scoreGains.set(playerCellIndex, currentGain + ai.score + 100);
++                        aiIndicesToRemove.add(aiIndex);
++                    }
++                    // AI is bigger
++                    else if (aiSize > playerSize * COLLISION_THRESHOLD) {
++                        ai.score += playerCell.score + 100;
++                        playerCellsToRemove.add(playerCellIndex);
++                    }
+                 }
+             }
+         });
+@@ -115,16 +139,24 @@ export function handleAIAICollisions() {
+             const ai2Size = getSize(ai2.score);
+             const minDistance = ai1Size + ai2Size;
+ 
+-            if (distance < minDistance) {
+-                if (ai1Size > ai2Size * COLLISION_THRESHOLD) {
+-                    const currentGain = scoreGains.get(i) || 0;
+-                    scoreGains.set(i, currentGain + ai2.score + 100);
+-                    aisToRemove.add(j);
+-                } else if (ai2Size > ai1Size * COLLISION_THRESHOLD) {
+-                    const currentGain = scoreGains.get(j) || 0;
+-                    scoreGains.set(j, currentGain + ai1.score + 100);
+-                    aisToRemove.add(i);
+-                    break;
++            // Only perform triangle collision if circles are close enough
++            if (distance < minDistance * 1.5) {
++                // Create triangles for more precise collision detection
++                const ai1Triangle = createTriangle(ai1.x, ai1.y, ai1Size, ai1.rotation || 0);
++                const ai2Triangle = createTriangle(ai2.x, ai2.y, ai2Size, ai2.rotation || 0);
++                
++                // Check for triangle overlap
++                if (doTrianglesOverlap(ai1Triangle, ai2Triangle)) {
++                    if (ai1Size > ai2Size * COLLISION_THRESHOLD) {
++                        const currentGain = scoreGains.get(i) || 0;
++                        scoreGains.set(i, currentGain + ai2.score + 100);
++                        aisToRemove.add(j);
++                    } else if (ai2Size > ai1Size * COLLISION_THRESHOLD) {
++                        const currentGain = scoreGains.get(j) || 0;
++                        scoreGains.set(j, currentGain + ai1.score + 100);
++                        aisToRemove.add(i);
++                        break;
++                    }
+                 }
+             }
+         }
+@@ -150,7 +182,8 @@ export function respawnEntities() {
+         gameState.food.push({
+             x: pos.x,
+             y: pos.y,
+-            color: `hsl(${Math.random() * 360}, 50%, 50%)`
++            color: `hsl(${Math.random() * 360}, 50%, 50%)`,
++            rotation: Math.random() * Math.PI * 2 // Add random rotation
+         });
+     }
+ 
+@@ -160,6 +193,10 @@ export function respawnEntities() {
+         const newAI = respawnAI();
+         newAI.x = safePos.x;
+         newAI.y = safePos.y;
++        // Ensure AI has rotation property
++        if (!newAI.hasOwnProperty('rotation')) {
++            newAI.rotation = Math.random() * Math.PI * 2;
++        }
+         gameState.aiPlayers.push(newAI);
+     }
+ 
+@@ -171,7 +208,8 @@ export function respawnEntities() {
+             y: safePos.y,
+             score: STARTING_SCORE,
+             velocityX: 0,
+-            velocityY: 0
++            velocityY: 0,
++            rotation: Math.random() * Math.PI * 2 // Add initial rotation
+         });
+     }
+ }
+\ No newline at end of file
+diff --git a/static/js/entities.js b/static/js/entities.js
+index 01441f2..96b75bd 100644
+--- a/static/js/entities.js
++++ b/static/js/entities.js
+@@ -165,6 +165,7 @@ function updateCellMerging() {
+ }
+ 
+ export function updatePlayer() {
++    // Calculate direction towards mouse
+     const dx = mouse.x - window.innerWidth / 2;
+     const dy = mouse.y - window.innerHeight / 2;
+     const distance = Math.sqrt(dx * dx + dy * dy);
+@@ -187,6 +188,11 @@ export function updatePlayer() {
+             // Update position
+             cell.x = Math.max(0, Math.min(WORLD_SIZE, cell.x + cell.velocityX));
+             cell.y = Math.max(0, Math.min(WORLD_SIZE, cell.y + cell.velocityY));
++            
++            // Update rotation based on movement direction
++            if (Math.abs(cell.velocityX) > 0.01 || Math.abs(cell.velocityY) > 0.01) {
++                cell.rotation = Math.atan2(cell.velocityY, cell.velocityX);
++            }
+         });
+     }
+ 
+@@ -221,6 +227,7 @@ export function splitPlayerCell(cell) {
+         score: cell.score / 2,
+         velocityX: direction.x * SPLIT_VELOCITY,
+         velocityY: direction.y * SPLIT_VELOCITY,
++        rotation: Math.atan2(direction.y, direction.x), // Set rotation based on split direction
+         splitTime: now
+     };
+ 
+@@ -228,6 +235,7 @@ export function splitPlayerCell(cell) {
+     cell.score /= 2;
+     cell.velocityX = -direction.x * SPLIT_VELOCITY * 0.5;
+     cell.velocityY = -direction.y * SPLIT_VELOCITY * 0.5;
++    cell.rotation = Math.atan2(-direction.y, -direction.x); // Update rotation based on new direction
+     cell.splitTime = now;
+ 
+     // Add new cell
+@@ -256,6 +264,9 @@ export function updateAI() {
+ 
+         ai.x = Math.max(0, Math.min(WORLD_SIZE, ai.x));
+         ai.y = Math.max(0, Math.min(WORLD_SIZE, ai.y));
++        
++        // Update rotation to match movement direction
++        ai.rotation = ai.direction;
+     });
+ }
+ 
+@@ -272,7 +283,21 @@ export function initEntities() {
+         gameState.food.push({
+             x: pos.x,
+             y: pos.y,
+-            color: `hsl(${Math.random() * 360}, 50%, 50%)`
++            color: `hsl(${Math.random() * 360}, 50%, 50%)`,
++            rotation: Math.random() * Math.PI * 2 // Random rotation for triangular food
++        });
++    }
++
++    // Ensure player has at least one cell
++    if (gameState.playerCells.length === 0) {
++        const safePos = findSafeSpawnLocation(gameState);
++        gameState.playerCells.push({
++            x: safePos.x,
++            y: safePos.y,
++            score: STARTING_SCORE,
++            velocityX: 0,
++            velocityY: 0,
++            rotation: 0 // Initial rotation for triangle rendering
+         });
+     }
+ 
+@@ -285,6 +310,7 @@ export function initEntities() {
+             score: AI_STARTING_SCORE,
+             color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+             direction: Math.random() * Math.PI * 2,
++            rotation: Math.random() * Math.PI * 2, // Initial rotation for triangle rendering
+             name: getUnusedAIName()
+         };
+         gameState.aiPlayers.push(ai);
+@@ -301,6 +327,7 @@ export function initEntities() {
+ export function respawnAI() {
+     const pos = getRandomPosition();
+     const name = getUnusedAIName();
++    const rotation = Math.random() * Math.PI * 2;
+     
+     return {
+         x: pos.x,
+@@ -308,6 +335,7 @@ export function respawnAI() {
+         score: AI_STARTING_SCORE,
+         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
+         direction: Math.random() * Math.PI * 2,
++        rotation: rotation, // Add rotation for triangle rendering
+         name: name
+     };
+ }
+\ No newline at end of file
+diff --git a/static/js/renderer.js b/static/js/renderer.js
+index fc0853d..b01d9cb 100644
+--- a/static/js/renderer.js
++++ b/static/js/renderer.js
+@@ -1,6 +1,7 @@
+ import { gameState } from './gameState.js';
+ import { getSize, calculateCenterOfMass } from './utils.js';
+ import { WORLD_SIZE, COLORS, FOOD_SIZE } from './config.js';
++import { createTriangle } from './triangleCollision.js';
+ 
+ let canvas, ctx, minimapCanvas, minimapCtx, scoreElement, leaderboardContent;
+ 
+@@ -29,14 +30,30 @@ function drawCircle(x, y, value, color, isFood) {
+     ctx.fill();
+ }
+ 
+-function drawCellWithName(x, y, score, color, name) {
+-    const size = getSize(score);
++function drawTriangle(x, y, size, color, rotation = 0) {
++    // Create a triangle shape
++    const triangle = createTriangle(x, y, size, rotation);
+     
+-    // Draw cell
+     ctx.beginPath();
+-    ctx.arc(x, y, size, 0, Math.PI * 2);
++    ctx.moveTo(triangle.x1, triangle.y1);
++    ctx.lineTo(triangle.x2, triangle.y2);
++    ctx.lineTo(triangle.x3, triangle.y3);
++    ctx.closePath();
++    
+     ctx.fillStyle = color;
+     ctx.fill();
++    
++    // Add a subtle stroke for better visibility
++    ctx.strokeStyle = 'rgba(0, 0, 0, 0.3)';
++    ctx.lineWidth = 1;
++    ctx.stroke();
++}
++
++function drawCellWithName(x, y, score, color, name, rotation = 0) {
++    const size = getSize(score);
++    
++    // Draw cell as a triangle
++    drawTriangle(x, y, size, color, rotation);
+ 
+     // Draw name
+     if (size > 20) {  // Only draw name if cell is big enough
+@@ -77,7 +94,7 @@ export function drawGame() {
+         
+         if (screenX >= -FOOD_SIZE && screenX <= canvas.width + FOOD_SIZE &&
+             screenY >= -FOOD_SIZE && screenY <= canvas.height + FOOD_SIZE) {
+-            drawCircle(screenX, screenY, FOOD_SIZE, food.color, true);
++            drawTriangle(screenX, screenY, FOOD_SIZE, food.color, food.rotation);
+         }
+     });
+ 
+@@ -89,7 +106,7 @@ export function drawGame() {
+         
+         if (screenX >= -size && screenX <= canvas.width + size &&
+             screenY >= -size && screenY <= canvas.height + size) {
+-            drawCellWithName(screenX, screenY, ai.score, ai.color, ai.name);
++            drawCellWithName(screenX, screenY, ai.score, ai.color, ai.name, ai.rotation);
+         }
+     });
+ 
+@@ -101,7 +118,7 @@ export function drawGame() {
+         
+         if (screenX >= -size && screenX <= canvas.width + size &&
+             screenY >= -size && screenY <= canvas.height + size) {
+-            drawCellWithName(screenX, screenY, cell.score, COLORS.PLAYER, gameState.playerName);
++            drawCellWithName(screenX, screenY, cell.score, COLORS.PLAYER, gameState.playerName, cell.rotation);
+         }
+     });
+ 
+diff --git a/static/js/triangleCollision.js b/static/js/triangleCollision.js
+new file mode 100644
+index 0000000..334075b
+--- /dev/null
++++ b/static/js/triangleCollision.js
+@@ -0,0 +1,222 @@
++/**
++ * Triangle Collision Detection Module
++ * Implements algorithms for detecting overlap between triangles
++ */
++
++/**
++ * Represents a triangle with three vertices
++ * @typedef {Object} Triangle
++ * @property {number} x1 - x-coordinate of first vertex
++ * @property {number} y1 - y-coordinate of first vertex
++ * @property {number} x2 - x-coordinate of second vertex
++ * @property {number} y2 - y-coordinate of second vertex
++ * @property {number} x3 - x-coordinate of third vertex
++ * @property {number} y3 - y-coordinate of third vertex
++ */
++
++/**
++ * Determines if a point is inside a triangle using barycentric coordinates
++ * @param {number} px - x-coordinate of the point
++ * @param {number} py - y-coordinate of the point
++ * @param {Triangle} triangle - The triangle to check against
++ * @returns {boolean} - True if the point is inside the triangle
++ */
++export function isPointInTriangle(px, py, triangle) {
++    const { x1, y1, x2, y2, x3, y3 } = triangle;
++    
++    // Calculate barycentric coordinates
++    const denominator = ((y2 - y3) * (x1 - x3) + (x3 - x2) * (y1 - y3));
++    
++    // Avoid division by zero
++    if (Math.abs(denominator) < 0.0001) return false;
++    
++    const a = ((y2 - y3) * (px - x3) + (x3 - x2) * (py - y3)) / denominator;
++    const b = ((y3 - y1) * (px - x3) + (x1 - x3) * (py - y3)) / denominator;
++    const c = 1 - a - b;
++    
++    // Point is inside if all barycentric coordinates are between 0 and 1
++    return a >= 0 && a <= 1 && b >= 0 && b <= 1 && c >= 0 && c <= 1;
++}
++
++/**
++ * Checks if a line segment intersects with another line segment
++ * @param {number} x1 - x-coordinate of first point of first line
++ * @param {number} y1 - y-coordinate of first point of first line
++ * @param {number} x2 - x-coordinate of second point of first line
++ * @param {number} y2 - y-coordinate of second point of first line
++ * @param {number} x3 - x-coordinate of first point of second line
++ * @param {number} y3 - y-coordinate of first point of second line
++ * @param {number} x4 - x-coordinate of second point of second line
++ * @param {number} y4 - y-coordinate of second point of second line
++ * @returns {boolean} - True if the line segments intersect
++ */
++export function doLinesIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
++    // Special case: Check if the lines are actually the same line segment
++    if ((x1 === x3 && y1 === y3 && x2 === x4 && y2 === y4) ||
++        (x1 === x4 && y1 === y4 && x2 === x3 && y2 === y3)) {
++        return true;
++    }
++    
++    // Check for the case where one of the endpoints of one line is on the other line
++    // This is a more robust approach for detecting intersections
++    
++    // Function to check if point (px,py) is on line segment (x1,y1)-(x2,y2)
++    function isPointOnLine(px, py, lx1, ly1, lx2, ly2) {
++        // Check if point is within the bounding box of the line segment
++        if (px < Math.min(lx1, lx2) - 0.0001 || px > Math.max(lx1, lx2) + 0.0001 ||
++            py < Math.min(ly1, ly2) - 0.0001 || py > Math.max(ly1, ly2) + 0.0001) {
++            return false;
++        }
++        
++        // Check if point is on the line using cross product
++        const cross = (py - ly1) * (lx2 - lx1) - (px - lx1) * (ly2 - ly1);
++        return Math.abs(cross) < 0.0001;
++    }
++    
++    // Check if any endpoint of one line is on the other line
++    if (isPointOnLine(x1, y1, x3, y3, x4, y4) ||
++        isPointOnLine(x2, y2, x3, y3, x4, y4) ||
++        isPointOnLine(x3, y3, x1, y1, x2, y2) ||
++        isPointOnLine(x4, y4, x1, y1, x2, y2)) {
++        return true;
++    }
++    
++    // Calculate the direction of the lines
++    const d1x = x2 - x1;
++    const d1y = y2 - y1;
++    const d2x = x4 - x3;
++    const d2y = y4 - y3;
++    
++    // Calculate the determinant
++    const denominator = d1y * d2x - d1x * d2y;
++    
++    // Lines are parallel if denominator is close to 0
++    if (Math.abs(denominator) < 0.0001) return false;
++    
++    // Calculate the parameters for the intersection point
++    const d3x = x1 - x3;
++    const d3y = y1 - y3;
++    
++    const t1 = (d2x * d3y - d2y * d3x) / denominator;
++    const t2 = (d1x * d3y - d1y * d3x) / denominator;
++    
++    // Check if the intersection point is within both line segments
++    return t1 >= 0 && t1 <= 1 && t2 >= 0 && t2 <= 1;
++}
++
++/**
++ * Checks if two triangles overlap using vertex inclusion and edge intersection tests
++ * @param {Triangle} triangle1 - First triangle
++ * @param {Triangle} triangle2 - Second triangle
++ * @returns {boolean} - True if the triangles overlap
++ */
++export function doTrianglesOverlap(triangle1, triangle2) {
++    // Null check for triangles
++    if (!triangle1 || !triangle2) return false;
++    
++    // Ensure all properties exist
++    const t1Props = ['x1', 'y1', 'x2', 'y2', 'x3', 'y3'];
++    const t2Props = ['x1', 'y1', 'x2', 'y2', 'x3', 'y3'];
++    
++    for (const prop of t1Props) {
++        if (triangle1[prop] === undefined) return false;
++    }
++    
++    for (const prop of t2Props) {
++        if (triangle2[prop] === undefined) return false;
++    }
++    
++    // Check if any vertex of triangle1 is inside triangle2
++    if (isPointInTriangle(triangle1.x1, triangle1.y1, triangle2) ||
++        isPointInTriangle(triangle1.x2, triangle1.y2, triangle2) ||
++        isPointInTriangle(triangle1.x3, triangle1.y3, triangle2)) {
++        return true;
++    }
++    
++    // Check if any vertex of triangle2 is inside triangle1
++    if (isPointInTriangle(triangle2.x1, triangle2.y1, triangle1) ||
++        isPointInTriangle(triangle2.x2, triangle2.y2, triangle1) ||
++        isPointInTriangle(triangle2.x3, triangle2.y3, triangle1)) {
++        return true;
++    }
++    
++    // Check if any edge of triangle1 intersects with any edge of triangle2
++    const edges1 = [
++        [triangle1.x1, triangle1.y1, triangle1.x2, triangle1.y2],
++        [triangle1.x2, triangle1.y2, triangle1.x3, triangle1.y3],
++        [triangle1.x3, triangle1.y3, triangle1.x1, triangle1.y1]
++    ];
++    
++    const edges2 = [
++        [triangle2.x1, triangle2.y1, triangle2.x2, triangle2.y2],
++        [triangle2.x2, triangle2.y2, triangle2.x3, triangle2.y3],
++        [triangle2.x3, triangle2.y3, triangle2.x1, triangle2.y1]
++    ];
++    
++    for (const [x1, y1, x2, y2] of edges1) {
++        for (const [x3, y3, x4, y4] of edges2) {
++            if (doLinesIntersect(x1, y1, x2, y2, x3, y3, x4, y4)) {
++                return true;
++            }
++        }
++    }
++    
++    return false;
++}
++
++/**
++ * Creates a triangle with the given center point and size
++ * @param {number} x - x-coordinate of the center
++ * @param {number} y - y-coordinate of the center
++ * @param {number} size - Size of the triangle (distance from center to vertices)
++ * @param {number} rotation - Rotation angle in radians
++ * @returns {Triangle} - A triangle object
++ */
++export function createTriangle(x, y, size, rotation = 0) {
++    // Create an equilateral triangle with a slightly larger size for better collision detection
++    // Using 1.1 * size to make the collision area slightly larger than the visual triangle
++    const collisionSize = size * 1.1; // Slightly larger collision area
++    
++    const angle1 = rotation;
++    const angle2 = rotation + (2 * Math.PI / 3);
++    const angle3 = rotation + (4 * Math.PI / 3);
++    
++    return {
++        x1: x + collisionSize * Math.cos(angle1),
++        y1: y + collisionSize * Math.sin(angle1),
++        x2: x + collisionSize * Math.cos(angle2),
++        y2: y + collisionSize * Math.sin(angle2),
++        x3: x + collisionSize * Math.cos(angle3),
++        y3: y + collisionSize * Math.sin(angle3)
++    };
++}
++
++/**
++ * Calculates the area of a triangle
++ * @param {Triangle} triangle - The triangle
++ * @returns {number} - The area of the triangle
++ */
++export function calculateTriangleArea(triangle) {
++    const { x1, y1, x2, y2, x3, y3 } = triangle;
++    return Math.abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2);
++}
++
++/**
++ * Checks if a point is inside a convex polygon
++ * @param {number} x - x-coordinate of the point
++ * @param {number} y - y-coordinate of the point
++ * @param {Array<{x: number, y: number}>} polygon - Array of polygon vertices
++ * @returns {boolean} - True if the point is inside the polygon
++ */
++export function isPointInPolygon(x, y, polygon) {
++    let inside = false;
++    for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
++        const xi = polygon[i].x, yi = polygon[i].y;
++        const xj = polygon[j].x, yj = polygon[j].y;
++        
++        const intersect = ((yi > y) !== (yj > y)) &&
++            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
++        if (intersect) inside = !inside;
++    }
++    return inside;
++}

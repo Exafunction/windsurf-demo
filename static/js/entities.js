@@ -165,6 +165,7 @@ function updateCellMerging() {
 }
 
 export function updatePlayer() {
+    // Calculate direction towards mouse
     const dx = mouse.x - window.innerWidth / 2;
     const dy = mouse.y - window.innerHeight / 2;
     const distance = Math.sqrt(dx * dx + dy * dy);
@@ -187,6 +188,11 @@ export function updatePlayer() {
             // Update position
             cell.x = Math.max(0, Math.min(WORLD_SIZE, cell.x + cell.velocityX));
             cell.y = Math.max(0, Math.min(WORLD_SIZE, cell.y + cell.velocityY));
+            
+            // Update rotation based on movement direction
+            if (Math.abs(cell.velocityX) > 0.01 || Math.abs(cell.velocityY) > 0.01) {
+                cell.rotation = Math.atan2(cell.velocityY, cell.velocityX);
+            }
         });
     }
 
@@ -221,6 +227,7 @@ export function splitPlayerCell(cell) {
         score: cell.score / 2,
         velocityX: direction.x * SPLIT_VELOCITY,
         velocityY: direction.y * SPLIT_VELOCITY,
+        rotation: Math.atan2(direction.y, direction.x), // Set rotation based on split direction
         splitTime: now
     };
 
@@ -228,6 +235,7 @@ export function splitPlayerCell(cell) {
     cell.score /= 2;
     cell.velocityX = -direction.x * SPLIT_VELOCITY * 0.5;
     cell.velocityY = -direction.y * SPLIT_VELOCITY * 0.5;
+    cell.rotation = Math.atan2(-direction.y, -direction.x); // Update rotation based on new direction
     cell.splitTime = now;
 
     // Add new cell
@@ -256,6 +264,9 @@ export function updateAI() {
 
         ai.x = Math.max(0, Math.min(WORLD_SIZE, ai.x));
         ai.y = Math.max(0, Math.min(WORLD_SIZE, ai.y));
+        
+        // Update rotation to match movement direction
+        ai.rotation = ai.direction;
     });
 }
 
@@ -272,7 +283,21 @@ export function initEntities() {
         gameState.food.push({
             x: pos.x,
             y: pos.y,
-            color: `hsl(${Math.random() * 360}, 50%, 50%)`
+            color: `hsl(${Math.random() * 360}, 50%, 50%)`,
+            rotation: Math.random() * Math.PI * 2 // Random rotation for triangular food
+        });
+    }
+
+    // Ensure player has at least one cell
+    if (gameState.playerCells.length === 0) {
+        const safePos = findSafeSpawnLocation(gameState);
+        gameState.playerCells.push({
+            x: safePos.x,
+            y: safePos.y,
+            score: STARTING_SCORE,
+            velocityX: 0,
+            velocityY: 0,
+            rotation: 0 // Initial rotation for triangle rendering
         });
     }
 
@@ -285,6 +310,7 @@ export function initEntities() {
             score: AI_STARTING_SCORE,
             color: `hsl(${Math.random() * 360}, 70%, 50%)`,
             direction: Math.random() * Math.PI * 2,
+            rotation: Math.random() * Math.PI * 2, // Initial rotation for triangle rendering
             name: getUnusedAIName()
         };
         gameState.aiPlayers.push(ai);
@@ -301,6 +327,7 @@ export function initEntities() {
 export function respawnAI() {
     const pos = getRandomPosition();
     const name = getUnusedAIName();
+    const rotation = Math.random() * Math.PI * 2;
     
     return {
         x: pos.x,
@@ -308,6 +335,7 @@ export function respawnAI() {
         score: AI_STARTING_SCORE,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
         direction: Math.random() * Math.PI * 2,
+        rotation: rotation, // Add rotation for triangle rendering
         name: name
     };
 }
