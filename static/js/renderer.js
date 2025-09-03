@@ -21,10 +21,20 @@ export function resizeCanvas() {
     canvas.height = window.innerHeight;
 }
 
-function drawCircle(x, y, value, color, isFood) {
-    const size = isFood ? value : getSize(value);
+function drawTriangle(x, y, value, color, isFood) {
+    const baseSize = isFood ? value : getSize(value);
+    const size = baseSize * 1.5; // Make triangles 50% bigger
+    const height = size * Math.sqrt(3) / 2; // Height of equilateral triangle
+    
     ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
+    // Top vertex
+    ctx.moveTo(x, y - height * 2/3);
+    // Bottom left vertex
+    ctx.lineTo(x - size/2, y + height * 1/3);
+    // Bottom right vertex
+    ctx.lineTo(x + size/2, y + height * 1/3);
+    ctx.closePath();
+    
     ctx.fillStyle = color;
     ctx.fill();
 }
@@ -33,10 +43,7 @@ function drawCellWithName(x, y, score, color, name) {
     const size = getSize(score);
     
     // Draw cell
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, Math.PI * 2);
-    ctx.fillStyle = color;
-    ctx.fill();
+    drawTriangle(x, y, score, color, false);
 
     // Draw name
     if (size > 20) {  // Only draw name if cell is big enough
@@ -77,7 +84,7 @@ export function drawGame() {
         
         if (screenX >= -FOOD_SIZE && screenX <= canvas.width + FOOD_SIZE &&
             screenY >= -FOOD_SIZE && screenY <= canvas.height + FOOD_SIZE) {
-            drawCircle(screenX, screenY, FOOD_SIZE, food.color, true);
+            drawTriangle(screenX, screenY, FOOD_SIZE, food.color, true);
         }
     });
 
@@ -127,28 +134,36 @@ export function drawMinimap() {
 
     // Draw AI players on minimap
     gameState.aiPlayers.forEach(ai => {
+        const size = 6; // Increased size for minimap triangles
+        const height = size * Math.sqrt(3) / 2;
+        
         minimapCtx.beginPath();
-        minimapCtx.arc(
-            ai.x * scale,
-            ai.y * scale,
-            2,
-            0,
-            Math.PI * 2
-        );
+        // Top vertex
+        minimapCtx.moveTo(ai.x * scale, ai.y * scale - height * 2/3);
+        // Bottom left vertex
+        minimapCtx.lineTo(ai.x * scale - size/2, ai.y * scale + height * 1/3);
+        // Bottom right vertex
+        minimapCtx.lineTo(ai.x * scale + size/2, ai.y * scale + height * 1/3);
+        minimapCtx.closePath();
+        
         minimapCtx.fillStyle = COLORS.MINIMAP.OTHER;
         minimapCtx.fill();
     });
 
     // Draw player cells on minimap
     gameState.playerCells.forEach(cell => {
+        const size = 9; // Increased size for player cells on minimap
+        const height = size * Math.sqrt(3) / 2;
+        
         minimapCtx.beginPath();
-        minimapCtx.arc(
-            cell.x * scale,
-            cell.y * scale,
-            3,
-            0,
-            Math.PI * 2
-        );
+        // Top vertex
+        minimapCtx.moveTo(cell.x * scale, cell.y * scale - height * 2/3);
+        // Bottom left vertex
+        minimapCtx.lineTo(cell.x * scale - size/2, cell.y * scale + height * 1/3);
+        // Bottom right vertex
+        minimapCtx.lineTo(cell.x * scale + size/2, cell.y * scale + height * 1/3);
+        minimapCtx.closePath();
+        
         minimapCtx.fillStyle = COLORS.MINIMAP.PLAYER;
         minimapCtx.fill();
     });
