@@ -1,5 +1,5 @@
 import { getSize, getDistance, calculateCenterOfMass, getRandomPosition, findSafeSpawnLocation, applyDecay } from '../utils.js';
-import { WORLD_SIZE, DECAY_ENABLED, DECAY_RATE, DECAY_THRESHOLD } from '../config.js';
+import { WORLD_SIZE, DECAY_RATE, DECAY_THRESHOLD, DECAY_SIZE_FACTOR } from '../config.js';
 
 describe('getSize', () => {
   test('returns correct size for score 0', () => {

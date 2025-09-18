@@ -10,7 +10,7 @@ export const COLLISION_THRESHOLD = 1.1; // 10% size difference needed for consum
 // Decay mechanics
 export const DECAY_ENABLED = true;  // Can be toggled to enable/disable decay
 export const DECAY_RATE = 0.05;     // Base score lost per second
-export const DECAY_THRESHOLD = 50;  // Minimum score before decay stops
+export const DECAY_THRESHOLD = 50;  // Minimum score - decay stops completely when score reaches this value
 export const DECAY_INTERVAL = 1000; // Decay calculation interval in milliseconds
 
 // Advanced decay mechanics

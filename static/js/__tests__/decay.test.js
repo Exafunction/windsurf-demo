@@ -35,7 +35,7 @@ describe('decay mechanics', () => {
 
   test('should decay proportionally to time passed', () => {
     const entity = { score: 100 };
-    const expectedDecayFactor = Math.sqrt(entity.score) / 10;
+    const expectedDecayFactor = Math.pow(entity.score, config.DECAY_SIZE_FACTOR) / 10;
     const expectedDecayAmount = config.DECAY_RATE * expectedDecayFactor * 1; // 1 second
     
     utils.applyDecay(entity, 1000); // 1 second
@@ -52,8 +52,8 @@ describe('decay mechanics', () => {
     utils.applyDecay(largeEntity, 1000);
     
     // Calculate expected decay
-    const smallDecayFactor = Math.sqrt(100) / 10;
-    const largeDecayFactor = Math.sqrt(400) / 10;
+    const smallDecayFactor = Math.pow(100, config.DECAY_SIZE_FACTOR) / 10;
+    const largeDecayFactor = Math.pow(400, config.DECAY_SIZE_FACTOR) / 10;
     
     // Verify larger entity decayed more
     expect(largeDecayFactor).toBeGreaterThan(smallDecayFactor);
