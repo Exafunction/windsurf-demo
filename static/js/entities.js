@@ -33,7 +33,7 @@ function getUnusedAIName() {
     return AI_NAMES.find(name => !usedNames.has(name)) || AI_NAMES[0];
 }
 
-function updateCellMerging() {
+export function updateCellMerging() {
     const now = Date.now();
     const cellsToMerge = [];
 
@@ -265,6 +265,8 @@ export function initEntities() {
     gameState.aiPlayers = [];
     
     console.log('Initializing entities...');
+    
+    const currentTime = Date.now();
 
     // Initialize food
     for (let i = 0; i < FOOD_COUNT; i++) {
@@ -285,9 +287,24 @@ export function initEntities() {
             score: AI_STARTING_SCORE,
             color: `hsl(${Math.random() * 360}, 70%, 50%)`,
             direction: Math.random() * Math.PI * 2,
-            name: getUnusedAIName()
+            name: getUnusedAIName(),
+            lastFoodTime: currentTime // Initialize lastFoodTime
         };
         gameState.aiPlayers.push(ai);
+    }
+
+    // Respawn player if all cells are gone
+    if (gameState.playerCells.length === 0) {
+        const safePos = findSafeSpawnLocation(gameState);
+        gameState.playerCells.push({
+            x: safePos.x,
+            y: safePos.y,
+            score: STARTING_SCORE,
+            velocityX: 0,
+            velocityY: 0,
+            splitTime: 0,
+            lastFoodTime: currentTime // Initialize lastFoodTime
+        });
     }
 
     console.log('Entities initialized:', {
@@ -301,6 +318,7 @@ export function initEntities() {
 export function respawnAI() {
     const pos = getRandomPosition();
     const name = getUnusedAIName();
+    const currentTime = Date.now();
     
     return {
         x: pos.x,
@@ -308,6 +326,7 @@ export function respawnAI() {
         score: AI_STARTING_SCORE,
         color: `hsl(${Math.random() * 360}, 70%, 50%)`,
         direction: Math.random() * Math.PI * 2,
-        name: name
+        name: name,
+        lastFoodTime: currentTime // Initialize lastFoodTime
     };
 }
